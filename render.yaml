@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: altivia-facturas
+    runtime: docker
+    plan: starter
+    healthCheckPath: /healthz
+    envVars:
+      - key: ALTIVIA_DATA_DIR
+        value: /var/data
+      - key: ALTIVIA_COOKIE_SECURE
+        value: "1"
+      - key: TESSERACT_LANG
+        value: spa+eng
+      - key: GOOGLE_DRIVE_ROOT_ID
+        value: 1rOoOcJ9SXHHc9BX6tLHjDIfE2_SqkeA1
+      - key: ALTIVIA_ADMIN_USER
+        sync: false
+      - key: ALTIVIA_ADMIN_PASSWORD
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: OPENAI_VISION_ENABLED
+        value: "0"
+    disk:
+      name: altivia-persistent-data
+      mountPath: /var/data
+      sizeGB: 10

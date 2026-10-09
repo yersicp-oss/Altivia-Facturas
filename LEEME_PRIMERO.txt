@@ -1,0 +1,43 @@
+ALTIVIA | GESTION INTELIGENTE DE FACTURAS - V2.0
+=================================================
+
+INICIO EN WINDOWS
+1. Descomprime el ZIP completo en una carpeta propia de Windows.
+2. Instala Python 3.11+ si todavia no esta instalado.
+3. Ejecuta INICIAR_ALTIVIA.bat.
+4. En el primer inicio configura usuario y contraseña maestra de administrador.
+5. Abre http://localhost:8765/ (normalmente se abre automaticamente).
+
+AHORA HAY DOS BOTONES EN LA PANTALLA INICIAL
+- REGISTRAR FACTURA: los colaboradores NO necesitan contraseña.
+  Seleccionan su nombre (de la lista creada por el admin), toman/suben foto
+  o PDF, revisan los SIETE campos y guardan.
+- INICIAR SESION: solo Administrador y Contador usan contraseña.
+
+PARA QUE LEA AUTOMATICAMENTE LAS FOTOGRAFIAS
+6. Ejecuta INSTALAR_OCR.bat una sola vez (con internet).
+7. Cuando termine, reinicia INICIAR_ALTIVIA.bat.
+8. Puedes comprobar el estado con VERIFICAR_OCR.py.
+
+QUE DATOS EXTRAE EL FORMULARIO DE REGISTRO
+Tipo, serie, correlativo, fecha de emision, razon social, RUC y total.
+El OCR propone datos, pero SIEMPRE debes compararlos con el original.
+Si no pudo leerlos, debes completarlos manualmente.
+
+FECHA DE ARCHIVO
+Factura subida 09-10-2026 con fecha de emision 06-10-2026:
+se guarda en data/uploads/<usuario>/06-10-2026/.
+
+GOOGLE DRIVE: pendiente de autorizacion OAuth por la cuenta de ALTIVIA.
+Consulta README.txt para conectar tu carpeta de Drive.
+NO publicar el puerto 8765 directamente en Internet sin HTTPS y controles
+adicionales. Para celulares en red local hay que configurar el servidor
+con cuidado y, para la camara, generalmente HTTPS.
+
+SI YA USAS LA V1:
+No borres la carpeta data/ de tu instalacion anterior (contiene las
+facturas y la base de datos). Haz una copia de seguridad antes de actualizar.
+Los miembros previos ya no pueden iniciar sesion con su antigua contraseña.
+Sus nombres aparecen en el selector publico mientras sigan activos.
+
+EN ESTA ENTREGA NO SE INCLUYEN NI CREDENCIALES NI DOCUMENTOS REALES.
