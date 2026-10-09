@@ -1,0 +1,2 @@
+# La aplicación principal usa exclusivamente la biblioteca estándar de Python 3.11+.
+# Para OCR de fotos y lectura de PDF ejecuta INSTALAR_OCR.bat.
