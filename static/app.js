@@ -21,7 +21,7 @@
  inputs.forEach(input=>input.addEventListener('change',async()=>{
    const file=input.files&&input.files[0];if(!file)return;
    if(file.size>15*1024*1024){msg('El archivo supera 15 MB. Comprime el documento o escanea con menor resolución.',true);return}
-   msg('Analizando '+fileLabels[input.dataset.mode]+'… Esto puede tardar unos segundos.');
+   msg('Leyendo '+fileLabels[input.dataset.mode]+' con OCR rápido. Si faltan datos, se consultará la IA configurada; espera un momento.');
    const data=new FormData();data.append('file',file);data.append('csrf',form.querySelector('[name=csrf]').value);
    if(chosen)data.append('owner_id',chosen.value);
    try{
