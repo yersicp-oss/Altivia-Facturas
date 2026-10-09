@@ -2,7 +2,7 @@ services:
   - type: web
     name: altivia-facturas
     runtime: docker
-    plan: starter
+    plan: free
     healthCheckPath: /healthz
     envVars:
       - key: ALTIVIA_DATA_DIR
@@ -21,7 +21,9 @@ services:
         sync: false
       - key: OPENAI_VISION_ENABLED
         value: "0"
-    disk:
-      name: altivia-persistent-data
-      mountPath: /var/data
-      sizeGB: 10
+      - key: ALTIVIA_AI_FALLBACK_MISSING
+        value: "2"
+      - key: ALTIVIA_AI_TIMEOUT
+        value: "18"
+      - key: OPENAI_API_KEY
+        sync: false
