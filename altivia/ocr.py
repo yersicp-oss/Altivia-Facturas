@@ -139,35 +139,17 @@ def ocr_status():
         return False,'','No fue posible iniciar Tesseract: '+str(exc)[:140]
 
 def _recognize_image(img,lang):
-    from PIL import Image,ImageOps,ImageEnhance,ImageFilter
+    """One bounded OCR pass; Render Free has little CPU. Never upscale huge photos."""
+    from PIL import Image, ImageOps, ImageEnhance
     import pytesseract
     img=ImageOps.exif_transpose(img).convert('RGB')
-    if img.width>3800 or img.height>3800:
-        img.thumbnail((3800,3800),Image.Resampling.LANCZOS)
-    gray=ImageOps.grayscale(img)
-    if gray.width<1600:
-        ratio=min(2.7,1600/max(gray.width,1))
-        gray=gray.resize((int(gray.width*ratio),int(gray.height*ratio)),Image.Resampling.LANCZOS)
-    boosted=ImageEnhance.Contrast(gray).enhance(1.6).filter(ImageFilter.UnsharpMask(radius=1.1,percent=140,threshold=3))
-    candidates=[(boosted,6),(gray,11)]
-    # Si la foto está girada o la disposición es irregular, se hacen intentos adicionales.
-    winner='';best=-1
-    for picture,psm in candidates:
-        try:
-            txt=pytesseract.image_to_string(picture,lang=lang,config=f'--oem 3 --psm {psm}')
-        except Exception:continue
-        found=parse_text(txt)
-        n=sum(bool(found.get(x)) for x in TARGET_FIELDS)
-        score=15*n+min(len(txt),1000)/100
-        if score>best:best=score;winner=txt
-        if n>=6:break
-    if sum(bool(parse_text(winner).get(x)) for x in TARGET_FIELDS)<3 and img.width>img.height:
-        rotated=boosted.rotate(90,expand=True)
-        try:
-            txt=pytesseract.image_to_string(rotated,lang=lang,config='--oem 3 --psm 6')
-            if sum(bool(parse_text(txt).get(x)) for x in TARGET_FIELDS)>sum(bool(parse_text(winner).get(x)) for x in TARGET_FIELDS):winner=txt
-        except Exception:pass
-    return winner
+    img.thumbnail((1700,1700),Image.Resampling.LANCZOS)
+    gray=ImageEnhance.Contrast(ImageOps.grayscale(img)).enhance(1.35)
+    try:
+        return pytesseract.image_to_string(gray,lang=lang,config='--oem 3 --psm 6',timeout=10)
+    except RuntimeError:
+        return ''
+
 
 def extract(path,mime):
     result={'fields':{},'text':'','method':'Sin OCR','warnings':[],'uncertain':[]}
@@ -178,14 +160,14 @@ def extract(path,mime):
         try:
             import fitz
             with fitz.open(str(p)) as document:
-                if len(document)>10:result['warnings'].append('Se analizaron solo las primeras 10 páginas.')
-                for index in range(min(10,len(document))):
+                if len(document)>2:result['warnings'].append('Se analizaron solo las primeras 2 páginas.')
+                for index in range(min(2,len(document))):
                     page=document[index]
                     raw=page.get_text('text',sort=True)
                     if len(raw.strip())<30 and ready:
                         from PIL import Image
                         from io import BytesIO
-                        pix=page.get_pixmap(matrix=fitz.Matrix(2.3,2.3),alpha=False)
+                        pix=page.get_pixmap(matrix=fitz.Matrix(1.45,1.45),alpha=False)
                         raw=_recognize_image(Image.open(BytesIO(pix.tobytes('png'))),lang)
                     text_chunks.append(raw)
                 result['method']='PDF digital / OCR local' if ready else 'PDF digital'
@@ -218,17 +200,26 @@ def extract(path,mime):
             result['warnings'].append('No se pudo procesar la fotografía: '+str(exc)[:120])
     result['text']='\n'.join(text_chunks)
     result['fields']=parse_text(result['text'])
-    if os.getenv('OPENAI_VISION_ENABLED','0')=='1':
+    # Hybrid: local OCR first; AI is an opt-in fallback, never a second mandatory pass.
+    use_ai=os.getenv('OPENAI_VISION_ENABLED','0')=='1'
+    core=('series','number','issued_on','provider','ruc','total')
+    required_missing=[field for field in core if not result['fields'].get(field)]
+    if use_ai and len(required_missing)>=int(os.getenv('ALTIVIA_AI_FALLBACK_MISSING','2')):
         try:
             from .vision import extract_vision
             fields,method=extract_vision(p,mime)
             if fields:
-                result['fields'].update(fields);result['method']=method
-                result['warnings'].append('Los valores de IA deben cotejarse con la factura original.')
+                # Retain OCR values only for keys which the AI did not provide.
+                for key,value in fields.items():
+                    if value:result['fields'][key]=value
+                result['method']='OCR local + '+method if result['text'].strip() else method
+                result['warnings'].append('Datos propuestos por IA: confirma los siete campos contra el original.')
         except Exception as exc:
-            result['warnings'].append('No se pudo usar la IA opcional: '+str(exc)[:130])
+            result['warnings'].append('IA no disponible; puedes completar los datos manualmente: '+str(exc)[:100])
+    elif use_ai:
+        result['warnings'].append('OCR local suficiente: se omitió la llamada de IA para ahorrar tiempo y costo.')
     for field in TARGET_FIELDS:
         if not result['fields'].get(field):result['uncertain'].append(field)
-    if len(result['text'].strip())<30 and os.getenv('OPENAI_VISION_ENABLED','0')!='1':
+    if len(result['text'].strip())<30 and not use_ai:
         result['warnings'].append('No se pudieron leer suficientes datos. Revisa que el OCR esté instalado o toma una foto más clara.')
     return result
