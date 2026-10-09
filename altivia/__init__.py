@@ -1,1 +1,1 @@
-
+"""ALTIVIA Facturas application package."""
